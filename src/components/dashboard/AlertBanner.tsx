@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Bell, X } from "lucide-react";
-import type { Alert } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import Alert from "@mui/material/Alert";
+import AlertTitle from "@mui/material/AlertTitle";
+import type { Alert as LogAlert } from "@/lib/types";
 
 type AlertBannerProps = {
-  alerts: Alert[];
+  alerts: LogAlert[];
 };
 
 export function AlertBanner({ alerts }: AlertBannerProps) {
@@ -37,34 +37,21 @@ export function AlertBanner({ alerts }: AlertBannerProps) {
   const top = visible[0];
 
   return (
-    <div
-      className={cn(
-        "flex flex-wrap items-center gap-3 rounded-2xl border px-4 py-3 text-sm",
-        critical > 0
-          ? "border-red-900 bg-red-950/50 text-red-100"
-          : "border-amber-900 bg-amber-950/40 text-amber-100",
-      )}
+    <Alert
+      severity={critical > 0 ? "error" : "warning"}
+      onClose={() => setDismissedIds(liveIds)}
+      slotProps={{
+        closeButton: {
+          "aria-label": "Dismiss alerts until new ones arrive",
+          title: "Dismiss until new alerts",
+        },
+      }}
     >
-      <Bell className="size-4 shrink-0" />
-      <p className="font-medium">
+      <AlertTitle>
         {visible.length} active alert{visible.length === 1 ? "" : "s"}
         {critical > 0 ? ` · ${critical} critical` : ""}
-      </p>
-      <p className="min-w-0 flex-1 truncate text-zinc-300">
-        {top.title}: {top.detail}
-      </p>
-      <button
-        type="button"
-        aria-label="Dismiss alerts until new ones arrive"
-        title="Dismiss until new alerts"
-        onClick={() => setDismissedIds(liveIds)}
-        className={cn(
-          "ml-auto inline-flex size-7 shrink-0 items-center justify-center rounded-lg",
-          "text-current/70 hover:bg-white/10 hover:text-current",
-        )}
-      >
-        <X className="size-4" />
-      </button>
-    </div>
+      </AlertTitle>
+      {top.title}: {top.detail}
+    </Alert>
   );
 }

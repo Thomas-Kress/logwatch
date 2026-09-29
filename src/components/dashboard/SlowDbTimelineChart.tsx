@@ -2,8 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import ReactECharts from "echarts-for-react";
+import Box from "@mui/material/Box";
+import Chip from "@mui/material/Chip";
+import Grid from "@mui/material/Grid";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import type { SlowDbTypeStat } from "@/components/dashboard/SlowDbChart";
-import { ChartStamp } from "@/components/dashboard/ChartStamp";
+import { ChartEmpty, ChartStamp } from "@/components/dashboard/ChartStamp";
 import {
   chartText,
   chartTooltip,
@@ -297,58 +302,81 @@ export default function SlowDbTimelineChart({
 
   if (!countOption || !durationOption) {
     return (
-      <div className="flex h-64 flex-col">
-        <div className="mb-1 flex justify-end">
+      <Box sx={{ display: "flex", height: 256, flexDirection: "column" }}>
+        <Box sx={{ mb: 0.5, display: "flex", justifyContent: "flex-end" }}>
           <ChartStamp at={arrivedAt} />
-        </div>
-        <div className="flex flex-1 items-center justify-center text-sm text-zinc-500">
-          {emptyMessage}
-        </div>
-      </div>
+        </Box>
+        <ChartEmpty>{emptyMessage}</ChartEmpty>
+      </Box>
     );
   }
 
   return (
-    <div>
-      <div className="grid gap-4 xl:grid-cols-2">
-        <div>
-          <div className="mb-1 flex items-center justify-between gap-3">
-            <p className="text-[11px] text-zinc-500">
+    <Box>
+      <Grid container spacing={2}>
+        <Grid size={{ xs: 12, xl: 6 }}>
+          <Stack
+            direction="row"
+            useFlexGap
+            sx={{
+              mb: 0.5,
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 1.5,
+            }}
+          >
+            <Typography variant="caption" color="text.secondary">
               Calls · {formatRange(start, windowEnd)}
-            </p>
+            </Typography>
             <ChartStamp at={arrivedAt} />
-          </div>
+          </Stack>
           <ReactECharts option={countOption} style={{ height: 260 }} notMerge />
-        </div>
-        <div>
-          <div className="mb-1 flex items-center justify-between gap-3">
-            <p className="text-[11px] text-zinc-500">
+        </Grid>
+        <Grid size={{ xs: 12, xl: 6 }}>
+          <Stack
+            direction="row"
+            useFlexGap
+            sx={{
+              mb: 0.5,
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 1.5,
+            }}
+          >
+            <Typography variant="caption" color="text.secondary">
               Time consumed · {formatRange(start, windowEnd)}
-            </p>
+            </Typography>
             <ChartStamp at={arrivedAt} />
-          </div>
+          </Stack>
           <ReactECharts
             option={durationOption}
             style={{ height: 260 }}
             notMerge
           />
-        </div>
-      </div>
-      <ul className="mt-3 flex flex-wrap gap-x-3 gap-y-1.5">
+        </Grid>
+      </Grid>
+      <Stack direction="row" useFlexGap sx={{ mt: 1.5, flexWrap: "wrap", gap: 1 }}>
         {catalog.map((type, index) => (
-          <li
+          <Chip
             key={type.opc}
-            className="inline-flex max-w-full items-center gap-1.5 text-[11px] text-zinc-400"
+            size="small"
+            variant="outlined"
             title={type.label}
-          >
-            <span
-              className="size-2 shrink-0 rounded-full"
-              style={{ backgroundColor: colorForOpc(type.opc, index) }}
-            />
-            <span className="truncate">{legendLabel(type, catalog)}</span>
-          </li>
+            label={legendLabel(type, catalog)}
+            icon={
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  bgcolor: colorForOpc(type.opc, index),
+                }}
+              />
+            }
+            sx={{ maxWidth: "100%", "& .MuiChip-icon": { ml: 0.75 } }}
+          />
         ))}
-      </ul>
-    </div>
+      </Stack>
+    </Box>
   );
 }

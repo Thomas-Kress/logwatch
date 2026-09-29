@@ -2,6 +2,11 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Container from "@mui/material/Container";
+import Grid from "@mui/material/Grid";
+import Stack from "@mui/material/Stack";
 import { AlertBanner } from "@/components/dashboard/AlertBanner";
 import { AlertList } from "@/components/dashboard/AlertList";
 import { ActivationView } from "@/components/dashboard/ActivationView";
@@ -423,7 +428,7 @@ export function Dashboard() {
   };
 
   return (
-    <div className="flex min-h-full flex-col">
+    <Box sx={{ display: "flex", minHeight: "100%", flexDirection: "column" }}>
       <AppHeader
         view={view}
         onViewChange={setView}
@@ -439,14 +444,22 @@ export function Dashboard() {
         showProcesses={processesVisible}
         showHealthLog={showHealthLog}
         onToggleHealthLog={() => setShowHealthLog((open) => !open)}
+        historyCollectionDays={snapshot?.historyCollectionDays ?? 7}
       />
 
-      <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-5 px-4 py-6 sm:px-6">
-        {snapshot?.error && (
-          <p className="rounded-xl border border-red-900 bg-red-950/40 px-4 py-3 text-sm text-red-200">
-            {snapshot.error}
-          </p>
-        )}
+      <Container
+        maxWidth={false}
+        sx={{
+          maxWidth: 1280,
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          gap: 2.5,
+          py: 3,
+          px: { xs: 2, sm: 3 },
+        }}
+      >
+        {snapshot?.error && <Alert severity="error">{snapshot.error}</Alert>}
 
         {showHealthLog && (
           <HealthLog
@@ -479,7 +492,7 @@ export function Dashboard() {
           now={now}
         />
       ) : (
-        <>
+        <Stack spacing={2.5}>
       <AlertBanner alerts={snapshot?.alerts ?? []} />
       <FilterBar
         filters={filters}
@@ -506,59 +519,71 @@ export function Dashboard() {
         onSelect={(id) => patchFilters({ file: id })}
       />
 
-      <section className="grid gap-4 xl:grid-cols-2">
-        <ChartCard
-          title="Log volume by severity"
-          description="All received log lines over the last 30 minutes. Info includes Debug. Filters do not apply."
-          arrivedAt={volumeArrivedAt}
-        >
-          <VolumeChart series={snapshot?.series ?? []} />
-        </ChartCard>
-        <ChartCard
-          title="Severity mix"
-          description="Totals of the volume chart for the same 30 minutes. Debug is shown separately here."
-          arrivedAt={volumeArrivedAt}
-        >
-          <SeverityChart
-            info={severityMix.info}
-            warn={severityMix.warn}
-            error={severityMix.error}
-            debug={severityMix.debug}
-          />
-        </ChartCard>
-        <ChartCard title="CP vs WP traffic" arrivedAt={roleArrivedAt}>
-          <RoleChart
-            series={snapshot?.series ?? []}
-          />
-        </ChartCard>
-        <ChartCard title="Top files by problems" arrivedAt={topFilesArrivedAt}>
-          <TopFilesChart
-            files={files}
-            multiServer={multiServer}
-          />
-        </ChartCard>
-      </section>
+      <Grid container spacing={2}>
+        <Grid size={{ xs: 12, xl: 6 }}>
+          <ChartCard
+            title="Log volume by severity"
+            description="All received log lines over the last 30 minutes. Info includes Debug. Filters do not apply."
+            arrivedAt={volumeArrivedAt}
+          >
+            <VolumeChart series={snapshot?.series ?? []} />
+          </ChartCard>
+        </Grid>
+        <Grid size={{ xs: 12, xl: 6 }}>
+          <ChartCard
+            title="Severity mix"
+            description="Totals of the volume chart for the same 30 minutes. Debug is shown separately here."
+            arrivedAt={volumeArrivedAt}
+          >
+            <SeverityChart
+              info={severityMix.info}
+              warn={severityMix.warn}
+              error={severityMix.error}
+              debug={severityMix.debug}
+            />
+          </ChartCard>
+        </Grid>
+        <Grid size={{ xs: 12, xl: 6 }}>
+          <ChartCard title="CP vs WP traffic" arrivedAt={roleArrivedAt}>
+            <RoleChart
+              series={snapshot?.series ?? []}
+            />
+          </ChartCard>
+        </Grid>
+        <Grid size={{ xs: 12, xl: 6 }}>
+          <ChartCard title="Top files by problems" arrivedAt={topFilesArrivedAt}>
+            <TopFilesChart
+              files={files}
+              multiServer={multiServer}
+            />
+          </ChartCard>
+        </Grid>
+      </Grid>
 
-      <section className="grid gap-4 xl:grid-cols-2">
-        <FileList
-          files={files}
-          selected={filters.file}
-          multiServer={multiServer}
-          onSelect={(name) => patchFilters({ file: name })}
-        />
-        <AlertList
-          alerts={snapshot?.alerts ?? []}
-          onFilter={patchFilters}
-        />
-      </section>
+      <Grid container spacing={2}>
+        <Grid size={{ xs: 12, xl: 6 }}>
+          <FileList
+            files={files}
+            selected={filters.file}
+            multiServer={multiServer}
+            onSelect={(name) => patchFilters({ file: name })}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, xl: 6 }}>
+          <AlertList
+            alerts={snapshot?.alerts ?? []}
+            onFilter={patchFilters}
+          />
+        </Grid>
+      </Grid>
 
       <LogTail
         lines={tailLines}
         multiServer={multiServer}
       />
-        </>
+        </Stack>
       )}
-      </div>
-    </div>
+      </Container>
+    </Box>
   );
 }

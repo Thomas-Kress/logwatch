@@ -1,39 +1,44 @@
 "use client";
 
+import Box from "@mui/material/Box";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import type { ReactNode } from "react";
 import { formatChartStamp } from "@/lib/chart-stamp";
-import { cn } from "@/lib/utils";
 
 type ChartStampProps = {
   at?: number;
-  className?: string;
 };
 
-export function ChartStamp({ at, className }: ChartStampProps) {
+export function ChartStamp({ at }: ChartStampProps) {
+  const sx = {
+    flexShrink: 0,
+    fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
+    fontSize: 11,
+    color: "text.disabled",
+  };
+
   if (!at) {
     return (
-      <span
-        className={cn(
-          "shrink-0 font-mono text-[11px] tabular-nums text-zinc-600",
-          className,
-        )}
-      >
+      <Typography component="span" sx={sx}>
         No new data
-      </span>
+      </Typography>
     );
   }
+
   const date = new Date(at);
   return (
-    <time
+    <Typography
+      component="time"
       dateTime={date.toISOString()}
       title={`New data arrived ${date.toLocaleString(undefined, { hour12: false })}`}
-      className={cn(
-        "shrink-0 font-mono text-[11px] tabular-nums text-zinc-500",
-        className,
-      )}
+      suppressHydrationWarning
+      sx={sx}
     >
       New data {formatChartStamp(at)}
-    </time>
+    </Typography>
   );
 }
 
@@ -50,20 +55,28 @@ export function ChartHeader({
   arrivedAt,
   titleAs: TitleTag = "h2",
 }: ChartHeaderProps) {
-  const titleClass =
-    TitleTag === "h3"
-      ? "text-xs font-medium text-zinc-400"
-      : "text-sm font-medium text-zinc-200";
   return (
-    <div className="mb-2">
-      <div className="flex items-start justify-between gap-3">
-        <TitleTag className={titleClass}>{title}</TitleTag>
+    <Box sx={{ mb: 1 }}>
+      <Stack
+        direction="row"
+        useFlexGap
+        sx={{ justifyContent: "space-between", alignItems: "flex-start", gap: 1.5 }}
+      >
+        <Typography
+          component={TitleTag}
+          variant={TitleTag === "h3" ? "caption" : "body2"}
+          sx={{ fontWeight: 500, color: TitleTag === "h3" ? "text.secondary" : "text.primary" }}
+        >
+          {title}
+        </Typography>
         <ChartStamp at={arrivedAt} />
-      </div>
+      </Stack>
       {description ? (
-        <p className="mt-0.5 text-xs text-zinc-500">{description}</p>
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+          {description}
+        </Typography>
       ) : null}
-    </div>
+    </Box>
   );
 }
 
@@ -72,7 +85,6 @@ type ChartCardProps = {
   description?: ReactNode;
   arrivedAt?: number;
   children: ReactNode;
-  className?: string;
 };
 
 export function ChartCard({
@@ -80,21 +92,30 @@ export function ChartCard({
   description,
   arrivedAt,
   children,
-  className,
 }: ChartCardProps) {
   return (
-    <div
-      className={cn(
-        "rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4",
-        className,
-      )}
+    <Card>
+      <CardContent sx={{ "&:last-child": { pb: 2 } }}>
+        <ChartHeader title={title} description={description} arrivedAt={arrivedAt} />
+        {children}
+      </CardContent>
+    </Card>
+  );
+}
+
+export function ChartEmpty({ children }: { children: ReactNode }) {
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        height: 256,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
     >
-      <ChartHeader
-        title={title}
-        description={description}
-        arrivedAt={arrivedAt}
-      />
-      {children}
-    </div>
+      <Typography variant="body2" color="text.secondary">
+        {children}
+      </Typography>
+    </Box>
   );
 }

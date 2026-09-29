@@ -2,8 +2,27 @@
 
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
+import Alert from "@mui/material/Alert";
+import Chip from "@mui/material/Chip";
+import Grid from "@mui/material/Grid";
+import List from "@mui/material/List";
+import ListItemButton from "@mui/material/ListItemButton";
+import ListItemText from "@mui/material/ListItemText";
+import Stack from "@mui/material/Stack";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableContainer from "@mui/material/TableContainer";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
+import Typography from "@mui/material/Typography";
 import { colorForProcessType } from "@/components/dashboard/chartTheme";
 import { ChartCard } from "@/components/dashboard/ChartStamp";
+import { FilterSearch } from "@/components/ui/FilterSearch";
+import { FilterSelect } from "@/components/ui/FilterSelect";
+import { FilterToolbar } from "@/components/ui/FilterToolbar";
+import { PanelCard } from "@/components/ui/PanelCard";
+import { StatCard } from "@/components/ui/StatCard";
 import { latestArrivalMs } from "@/lib/chart-stamp";
 import { DATA_WINDOW_DAYS } from "@/lib/data-window";
 import { timestampMs } from "@/lib/last-timestamps";
@@ -17,7 +36,6 @@ import {
   summarizeProcesses,
 } from "@/lib/processes";
 import type { AeProcessSnapshot, LogLine } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
 const ProcessTypeChart = dynamic(
   () => import("@/components/dashboard/ProcessTypeChart"),
@@ -30,11 +48,6 @@ type ProcessViewProps = {
   liveLines: LogLine[];
   now: number;
 };
-
-const selectClass =
-  "h-8 rounded-lg border border-zinc-800 bg-zinc-900 px-2 text-sm text-zinc-200 outline-none";
-const inputClass =
-  "h-8 rounded-lg border border-zinc-800 bg-zinc-900 px-3 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-sky-700";
 
 function formatDumpTime(value?: string) {
   if (!value) {
@@ -61,6 +74,11 @@ function countByPrefix(byType: { type: string; count: number }[], types: string[
     0,
   );
 }
+
+const mono = {
+  fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
+  fontSize: 13,
+};
 
 export function ProcessView({
   processes,
@@ -140,193 +158,177 @@ export function ProcessView({
   );
 
   return (
-    <div className="flex flex-col gap-5">
-      <section className="flex flex-wrap items-center gap-2 rounded-2xl border border-zinc-800 bg-zinc-900/70 p-3">
-        <p className="mr-2 text-sm font-medium text-zinc-300">Processes</p>
-        <select
+    <Stack spacing={2.5}>
+      <FilterToolbar label="Processes">
+        <FilterSelect
           value={type}
-          onChange={(event) => setType(event.target.value)}
-          className={selectClass}
-        >
-          <option value="">All types</option>
-          {summary.byType.map((item) => (
-            <option key={item.type} value={item.type}>
-              {item.type} ({item.count})
-            </option>
-          ))}
-        </select>
-        <select
-          value={host}
-          onChange={(event) => setHost(event.target.value)}
-          className={selectClass}
-        >
-          <option value="">All hosts</option>
-          {summary.byHost.map((item) => (
-            <option key={item.host} value={item.host}>
-              {item.host} ({item.count})
-            </option>
-          ))}
-        </select>
-        <input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search server, host, or port…"
-          className={`${inputClass} min-w-48 flex-1`}
+          onChange={setType}
+          options={[
+            { value: "", label: "All types" },
+            ...summary.byType.map((item) => ({
+              value: item.type,
+              label: `${item.type} (${item.count})`,
+            })),
+          ]}
         />
-      </section>
+        <FilterSelect
+          value={host}
+          onChange={setHost}
+          options={[
+            { value: "", label: "All hosts" },
+            ...summary.byHost.map((item) => ({
+              value: item.host,
+              label: `${item.host} (${item.count})`,
+            })),
+          ]}
+        />
+        <FilterSearch
+          value={query}
+          onChange={setQuery}
+          placeholder="Search server, host, or port…"
+        />
+      </FilterToolbar>
 
       {base.error && (
-        <p className="rounded-xl border border-amber-900 bg-amber-950/40 px-4 py-3 text-sm text-amber-100">
-          Could not scan process tables: {base.error}
-        </p>
+        <Alert severity="warning">Could not scan process tables: {base.error}</Alert>
       )}
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <article className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4">
-          <p className="text-sm text-zinc-400">Processes</p>
-          <p className="mt-3 font-mono text-3xl tracking-tight text-zinc-50">
-            {summary.total}
-          </p>
-        </article>
-        <article className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4">
-          <p className="text-sm text-zinc-400">Work (WP / JWP / PWP)</p>
-          <p className="mt-3 font-mono text-3xl tracking-tight text-zinc-50">
-            {work}
-          </p>
-        </article>
-        <article className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4">
-          <p className="text-sm text-zinc-400">Communication</p>
-          <p className="mt-3 font-mono text-3xl tracking-tight text-zinc-50">
-            {communication}
-          </p>
-        </article>
-        <article className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4">
-          <p className="text-sm text-zinc-400">Hosts</p>
-          <p className="mt-3 font-mono text-3xl tracking-tight text-zinc-50">
-            {summary.hosts}
-          </p>
-        </article>
-        <article className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4">
-          <p className="text-sm text-zinc-400">Longest uptime</p>
-          <p className="mt-3 font-mono text-3xl tracking-tight text-zinc-50">
-            {longestUptimeMs === undefined ? "—" : formatUptime(longestUptimeMs)}
-          </p>
-        </article>
-      </section>
+      <Grid container spacing={1.5}>
+        <Grid size={{ xs: 12, sm: 6, xl: "grow" }}>
+          <StatCard label="Processes" value={summary.total} />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, xl: "grow" }}>
+          <StatCard label="Work (WP / JWP / PWP)" value={work} />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, xl: "grow" }}>
+          <StatCard label="Communication" value={communication} />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, xl: "grow" }}>
+          <StatCard label="Hosts" value={summary.hosts} />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, xl: "grow" }}>
+          <StatCard
+            label="Longest uptime"
+            value={longestUptimeMs === undefined ? "—" : formatUptime(longestUptimeMs)}
+          />
+        </Grid>
+      </Grid>
 
-      <section className="grid gap-4 xl:grid-cols-2">
-        <ChartCard
-          title="By type"
-          description={`Latest server table in log files${
-            summary.dumpTs ? ` · logged ${formatDumpTime(summary.dumpTs)}` : ""
-          }${base.scannedAt ? "" : " · scanning log files…"}`}
-          arrivedAt={arrivedAt}
-        >
-          <ProcessTypeChart byType={summary.byType} />
-        </ChartCard>
-        <div className="flex max-h-[22rem] flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/70">
-          <p className="border-b border-zinc-800 px-4 py-3 text-sm font-medium text-zinc-200">
-            By host
-          </p>
-          <div className="flex-1 overflow-auto">
+      <Grid container spacing={2}>
+        <Grid size={{ xs: 12, xl: 6 }}>
+          <ChartCard
+            title="By type"
+            description={`Latest server table in log files${
+              summary.dumpTs ? ` · logged ${formatDumpTime(summary.dumpTs)}` : ""
+            }${base.scannedAt ? "" : " · scanning log files…"}`}
+            arrivedAt={arrivedAt}
+          >
+            <ProcessTypeChart byType={summary.byType} />
+          </ChartCard>
+        </Grid>
+        <Grid size={{ xs: 12, xl: 6 }}>
+          <PanelCard title="By host" maxHeight={352}>
             {summary.byHost.length === 0 ? (
-              <p className="px-4 py-8 text-sm text-zinc-500">
+              <Typography variant="body2" color="text.secondary" sx={{ px: 2, py: 4 }}>
                 No process hosts in the latest table.
-              </p>
+              </Typography>
             ) : (
-              summary.byHost.map((item) => (
-                <button
-                  key={item.host}
-                  type="button"
-                  onClick={() => setHost(item.host === host ? "" : item.host)}
-                  className={cn(
-                    "flex w-full items-center justify-between gap-3 border-b border-zinc-900 px-4 py-2.5 text-left hover:bg-zinc-800/70",
-                    host === item.host && "bg-zinc-800/70",
-                  )}
-                >
-                  <span className="truncate font-mono text-sm text-zinc-200">
-                    {item.host}
-                  </span>
-                  <span className="font-mono text-xs text-zinc-400">
-                    {item.count}
-                  </span>
-                </button>
-              ))
+              <List disablePadding>
+                {summary.byHost.map((item) => (
+                  <ListItemButton
+                    key={item.host}
+                    divider
+                    selected={host === item.host}
+                    onClick={() => setHost(item.host === host ? "" : item.host)}
+                  >
+                    <ListItemText
+                      primary={item.host}
+                      slotProps={{
+                        primary: { noWrap: true, sx: mono },
+                      }}
+                    />
+                    <Typography variant="caption" color="text.secondary" sx={mono}>
+                      {item.count}
+                    </Typography>
+                  </ListItemButton>
+                ))}
+              </List>
             )}
-          </div>
-        </div>
-      </section>
+          </PanelCard>
+        </Grid>
+      </Grid>
 
-      <section className="flex min-h-[24rem] flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950">
-        <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
-          <h2 className="text-sm font-medium text-zinc-200">Server processes</h2>
-          <span className="text-xs text-zinc-500">
+      <PanelCard
+        title="Server processes"
+        minHeight={384}
+        action={
+          <Typography variant="caption" color="text.secondary">
             {rows.length} shown
             {summary.dumpTs ? ` · ${formatDumpTime(summary.dumpTs)}` : ""}
-          </span>
-        </div>
-        <div className="flex-1 overflow-auto">
-          {rows.length === 0 ? (
-            <p className="px-4 py-8 text-sm text-zinc-500">
-              No server process table found in log files from the last{" "}
-              {DATA_WINDOW_DAYS} days.
-            </p>
-          ) : (
-            <table className="w-full min-w-[58rem] border-collapse text-left font-mono text-[13px] leading-6">
-              <thead className="sticky top-0 bg-zinc-950 text-xs text-zinc-500">
-                <tr className="border-b border-zinc-800">
-                  <th className="px-4 py-2 font-medium">Server</th>
-                  <th className="px-3 py-2 font-medium">Typ</th>
-                  <th className="px-3 py-2 font-medium">C</th>
-                  <th className="px-3 py-2 font-medium">Host</th>
-                  <th className="px-3 py-2 font-medium">Port</th>
-                  <th className="px-3 py-2 font-medium">StartTime</th>
-                  <th className="px-3 py-2 font-medium">LastUpdateTime</th>
-                  <th className="px-4 py-2 font-medium">Uptime</th>
-                </tr>
-              </thead>
-              <tbody>
+          </Typography>
+        }
+      >
+        {rows.length === 0 ? (
+          <Typography variant="body2" color="text.secondary" sx={{ px: 2, py: 4 }}>
+            No server process table found in log files from the last{" "}
+            {DATA_WINDOW_DAYS} days.
+          </Typography>
+        ) : (
+          <TableContainer>
+            <Table size="small" stickyHeader sx={{ minWidth: 928 }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Server</TableCell>
+                  <TableCell>Typ</TableCell>
+                  <TableCell>C</TableCell>
+                  <TableCell>Host</TableCell>
+                  <TableCell>Port</TableCell>
+                  <TableCell>StartTime</TableCell>
+                  <TableCell>LastUpdateTime</TableCell>
+                  <TableCell>Uptime</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
                 {rows.map((row) => {
                   const uptimeMs = processUptimeMs(row);
                   return (
-                  <tr
-                    key={row.name}
-                    className="border-b border-zinc-900/80 hover:bg-zinc-900/80"
-                  >
-                    <td className="px-4 py-1.5 text-zinc-100">{row.name}</td>
-                    <td className="px-3 py-1.5">
-                      <span
-                        className="inline-flex min-w-12 justify-center rounded-full px-2 py-0.5 text-xs"
-                        style={{
-                          color: colorForProcessType(row.type),
-                          backgroundColor: `${colorForProcessType(row.type)}22`,
-                        }}
-                      >
-                        {row.type}
-                      </span>
-                    </td>
-                    <td className="px-3 py-1.5 text-zinc-400">
-                      {row.connections}
-                    </td>
-                    <td className="px-3 py-1.5 text-zinc-200">{row.host}</td>
-                    <td className="px-3 py-1.5 text-zinc-400">{row.port}</td>
-                    <td className="px-3 py-1.5 whitespace-nowrap text-zinc-400">
-                      {row.startTime}
-                    </td>
-                    <td className="px-3 py-1.5 whitespace-nowrap text-zinc-400">
-                      {row.lastUpdateTime}
-                    </td>
-                    <td className="px-4 py-1.5 whitespace-nowrap text-zinc-200">
-                      {uptimeMs === undefined ? "—" : formatUptime(uptimeMs)}
-                    </td>
-                  </tr>
+                    <TableRow key={row.name} hover>
+                      <TableCell sx={mono}>{row.name}</TableCell>
+                      <TableCell>
+                        <Chip
+                          size="small"
+                          label={row.type}
+                          sx={{
+                            color: colorForProcessType(row.type),
+                            bgcolor: `${colorForProcessType(row.type)}22`,
+                            minWidth: 48,
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell sx={{ ...mono, color: "text.secondary" }}>
+                        {row.connections}
+                      </TableCell>
+                      <TableCell sx={mono}>{row.host}</TableCell>
+                      <TableCell sx={{ ...mono, color: "text.secondary" }}>
+                        {row.port}
+                      </TableCell>
+                      <TableCell sx={{ ...mono, color: "text.secondary", whiteSpace: "nowrap" }}>
+                        {row.startTime}
+                      </TableCell>
+                      <TableCell sx={{ ...mono, color: "text.secondary", whiteSpace: "nowrap" }}>
+                        {row.lastUpdateTime}
+                      </TableCell>
+                      <TableCell sx={{ ...mono, whiteSpace: "nowrap" }}>
+                        {uptimeMs === undefined ? "—" : formatUptime(uptimeMs)}
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </section>
-    </div>
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+      </PanelCard>
+    </Stack>
   );
 }

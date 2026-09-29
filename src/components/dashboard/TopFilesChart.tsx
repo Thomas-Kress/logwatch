@@ -7,6 +7,7 @@ import {
   chartText,
   chartTooltip,
 } from "@/components/dashboard/chartTheme";
+import { ChartEmpty } from "@/components/dashboard/ChartStamp";
 import type { WatchedFile } from "@/lib/types";
 import { fileLabel } from "@/lib/utils";
 
@@ -72,9 +73,7 @@ export default function TopFilesChart({
 
   if (top.length === 0) {
     return (
-      <div className="flex h-64 items-center justify-center text-sm text-zinc-500">
-        No files to rank yet.
-      </div>
+      <ChartEmpty>No files to rank yet.</ChartEmpty>
     );
   }
 

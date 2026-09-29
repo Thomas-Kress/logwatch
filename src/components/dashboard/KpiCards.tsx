@@ -1,5 +1,10 @@
-import { Activity, Bell, FileText, ShieldAlert, AlertTriangle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import DescriptionIcon from "@mui/icons-material/Description";
+import ErrorOutlineOutlinedIcon from "@mui/icons-material/ErrorOutlineOutlined";
+import NotificationsIcon from "@mui/icons-material/Notifications";
+import ShowChartIcon from "@mui/icons-material/ShowChart";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import Grid from "@mui/material/Grid";
+import { StatCard } from "@/components/ui/StatCard";
 
 export type KpiValues = {
   files: number;
@@ -10,33 +15,53 @@ export type KpiValues = {
 };
 
 const cards = [
-  { key: "files", label: "Files in view", icon: FileText, accent: "text-sky-300" },
-  { key: "rate", label: "Lines / min", icon: Activity, accent: "text-emerald-300" },
-  { key: "warnings", label: "Warnings", icon: AlertTriangle, accent: "text-amber-300" },
-  { key: "errors", label: "Errors", icon: ShieldAlert, accent: "text-red-300" },
-  { key: "alerts", label: "Active alerts", icon: Bell, accent: "text-violet-300" },
+  {
+    key: "files",
+    label: "Files in view",
+    icon: DescriptionIcon,
+    color: "info.main",
+  },
+  {
+    key: "rate",
+    label: "Lines / min",
+    icon: ShowChartIcon,
+    color: "success.main",
+  },
+  {
+    key: "warnings",
+    label: "Warnings",
+    icon: WarningAmberIcon,
+    color: "warning.main",
+  },
+  {
+    key: "errors",
+    label: "Errors",
+    icon: ErrorOutlineOutlinedIcon,
+    color: "error.main",
+  },
+  {
+    key: "alerts",
+    label: "Active alerts",
+    icon: NotificationsIcon,
+    color: "secondary.main",
+  },
 ] as const;
 
 export function KpiCards({ values }: { values: KpiValues }) {
   return (
-    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+    <Grid container spacing={1.5}>
       {cards.map((card) => {
         const Icon = card.icon;
         return (
-          <article
-            key={card.key}
-            className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4 shadow-sm"
-          >
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-zinc-400">{card.label}</p>
-              <Icon className={cn("size-4", card.accent)} />
-            </div>
-            <p className="mt-3 font-mono text-3xl tracking-tight text-zinc-50">
-              {values[card.key]}
-            </p>
-          </article>
+          <Grid key={card.key} size={{ xs: 12, sm: 6, xl: "grow" }}>
+            <StatCard
+              label={card.label}
+              value={values[card.key]}
+              icon={<Icon fontSize="small" sx={{ color: card.color }} />}
+            />
+          </Grid>
         );
       })}
-    </section>
+    </Grid>
   );
 }

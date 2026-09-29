@@ -7,6 +7,7 @@ import {
   chartTooltip,
   colorForOpc,
 } from "@/components/dashboard/chartTheme";
+import { ChartEmpty } from "@/components/dashboard/ChartStamp";
 import { formatDuration } from "@/lib/ae-meta";
 
 export type SlowDbTypeStat = {
@@ -95,9 +96,7 @@ export default function SlowDbChart({
 
   if (types.length === 0) {
     return (
-      <div className="flex h-64 items-center justify-center text-sm text-zinc-500">
-        {emptyMessage}
-      </div>
+      <ChartEmpty>{emptyMessage}</ChartEmpty>
     );
   }
 

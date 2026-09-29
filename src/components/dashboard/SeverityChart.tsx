@@ -7,6 +7,7 @@ import {
   chartText,
   chartTooltip,
 } from "@/components/dashboard/chartTheme";
+import { ChartEmpty } from "@/components/dashboard/ChartStamp";
 
 type SeverityChartProps = {
   info: number;
@@ -123,9 +124,7 @@ export default function SeverityChart({
 
   if (slices.length === 0) {
     return (
-      <div className="flex h-64 items-center justify-center text-sm text-zinc-500">
-        No severity mix yet.
-      </div>
+      <ChartEmpty>No severity mix yet.</ChartEmpty>
     );
   }
 

@@ -7,6 +7,7 @@ import {
   chartTooltip,
   colorForProcessType,
 } from "@/components/dashboard/chartTheme";
+import { ChartEmpty } from "@/components/dashboard/ChartStamp";
 import type { AeProcessTypeStat } from "@/lib/types";
 
 type ProcessTypeChartProps = {
@@ -48,9 +49,7 @@ export default function ProcessTypeChart({ byType }: ProcessTypeChartProps) {
 
   if (data.length === 0) {
     return (
-      <div className="flex h-64 items-center justify-center text-sm text-zinc-500">
-        No process types yet.
-      </div>
+      <ChartEmpty>No process types yet.</ChartEmpty>
     );
   }
 

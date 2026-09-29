@@ -41,7 +41,7 @@ import type {
 } from "@/lib/types";
 import { fileKey } from "@/lib/utils";
 
-const WATCHER_VERSION = 38;
+const WATCHER_VERSION = 39;
 const SNAPSHOT_CACHE_MS = 750;
 const ACTIVATION_PRUNE_MS = 15_000;
 const MAX_RECENT = 600;
@@ -290,6 +290,7 @@ class LogWatcher extends EventEmitter {
       servers,
       path: env.path,
       pattern: env.pattern,
+      historyCollectionDays: env.historyCollectionDays,
       startedAt: this.startedAt,
       generatedAt: Date.now(),
       files,

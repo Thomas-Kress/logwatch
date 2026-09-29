@@ -1,5 +1,8 @@
 "use client";
 
+import { FilterSearch } from "@/components/ui/FilterSearch";
+import { FilterSelect } from "@/components/ui/FilterSelect";
+import { FilterToolbar } from "@/components/ui/FilterToolbar";
 import type { DashboardFilters, FileRole, ServerSnapshot, Severity } from "@/lib/types";
 
 type FilterBarProps = {
@@ -8,80 +11,74 @@ type FilterBarProps = {
   onChange: (filters: DashboardFilters) => void;
 };
 
-const selectClass =
-  "h-8 rounded-lg border border-zinc-800 bg-zinc-900 px-2 text-sm text-zinc-200 outline-none";
-const inputClass =
-  "h-8 rounded-lg border border-zinc-800 bg-zinc-900 px-3 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-sky-700";
-
 export function FilterBar({ filters, servers = [], onChange }: FilterBarProps) {
   return (
-    <section className="flex flex-wrap items-center gap-2 rounded-2xl border border-zinc-800 bg-zinc-900/70 p-3">
-      <p className="mr-2 text-sm font-medium text-zinc-300">Filters</p>
+    <FilterToolbar label="Filters">
       {servers.length > 1 && (
-        <select
+        <FilterSelect
           value={filters.server}
-          onChange={(event) =>
-            onChange({ ...filters, server: event.target.value, file: "" })
-          }
-          className={selectClass}
-        >
-          <option value="">All servers</option>
-          {servers.map((server) => (
-            <option key={server.id} value={server.id}>
-              {server.host}
-            </option>
-          ))}
-        </select>
+          onChange={(server) => onChange({ ...filters, server, file: "" })}
+          options={[
+            { value: "", label: "All servers" },
+            ...servers.map((server) => ({
+              value: server.id,
+              label: server.host,
+            })),
+          ]}
+        />
       )}
-      <select
+      <FilterSelect
         value={filters.role}
-        onChange={(event) =>
-          onChange({ ...filters, role: event.target.value as FileRole | "all" })
+        onChange={(role) =>
+          onChange({ ...filters, role: role as FileRole | "all" })
         }
-        className={selectClass}
-      >
-        <option value="all">All processes</option>
-        <option value="CP">CP</option>
-        <option value="WP">WP</option>
-        <option value="JWP">JWP</option>
-        <option value="JCP">JCP</option>
-      </select>
-      <select
+        options={[
+          { value: "all", label: "All processes" },
+          { value: "CP", label: "CP" },
+          { value: "WP", label: "WP" },
+          { value: "JWP", label: "JWP" },
+          { value: "JCP", label: "JCP" },
+        ]}
+      />
+      <FilterSelect
         value={filters.severity}
-        onChange={(event) =>
+        onChange={(severity) =>
           onChange({
             ...filters,
-            severity: event.target.value as Severity | "all",
+            severity: severity as Severity | "all",
           })
         }
-        className={selectClass}
-      >
-        <option value="all">All levels</option>
-        <option value="error">Error</option>
-        <option value="warn">Warn</option>
-        <option value="info">Info</option>
-        <option value="debug">Debug</option>
-      </select>
-      <input
+        options={[
+          { value: "all", label: "All levels" },
+          { value: "error", label: "Error" },
+          { value: "warn", label: "Warn" },
+          { value: "info", label: "Info" },
+          { value: "debug", label: "Debug" },
+        ]}
+      />
+      <FilterSearch
         value={filters.query}
-        onChange={(event) => onChange({ ...filters, query: event.target.value })}
+        onChange={(query) => onChange({ ...filters, query })}
         placeholder="Search message or object…"
-        className={`${inputClass} min-w-48 flex-1`}
       />
-      <input
+      <FilterSearch
         value={filters.messageId}
-        onChange={(event) =>
-          onChange({ ...filters, messageId: event.target.value })
-        }
+        onChange={(messageId) => onChange({ ...filters, messageId })}
         placeholder="U00… message"
-        className={`${inputClass} w-36`}
+        sx={{ flex: "0 0 144px", minWidth: 144 }}
       />
-      <input
+      <FilterSearch
         value={filters.runId}
-        onChange={(event) => onChange({ ...filters, runId: event.target.value })}
+        onChange={(runId) => onChange({ ...filters, runId })}
         placeholder="RunID"
-        className={`${inputClass} w-32 font-mono`}
+        sx={{
+          flex: "0 0 128px",
+          minWidth: 128,
+          "& .MuiInputBase-input": {
+            fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
+          },
+        }}
       />
-    </section>
+    </FilterToolbar>
   );
 }

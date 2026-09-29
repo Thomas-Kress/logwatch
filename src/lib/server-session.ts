@@ -16,6 +16,11 @@ import {
   classifyCycleFiles,
   indexListedFiles,
 } from "@/lib/health-log";
+import {
+  expandFilePatternForRotations,
+  matchesFilePattern,
+  selectLogFilesForCoverage,
+} from "@/lib/log-files";
 import { applyLastTimestamps, parseLastTimestampRows } from "@/lib/last-timestamps";
 import { isTailHeader, parseLogLine } from "@/lib/log-parser";
 import { connectSsh, execCommand } from "@/lib/ssh";
@@ -231,7 +236,10 @@ export class ServerSession {
 
     const env = getEnv();
     const listed = await this.listFiles();
-    const nextNames = listed.map((file) => file.name).sort();
+    const liveFiles = listed.filter((file) =>
+      matchesFilePattern(file.name, env.FILE_PATTERN),
+    );
+    const nextNames = liveFiles.map((file) => file.name).sort();
     this.recordHealthCycle(listed);
     this.hooks.onFiles(this.target.id, listed);
 
@@ -266,7 +274,7 @@ export class ServerSession {
       if (!this.running || !this.client) {
         return;
       }
-      void this.scanLastTimestamps(listed);
+      void this.scanLastTimestamps(listed, liveFiles);
       void this.scanActivations(scanFiles);
       void this.scanSlowRoutines(slowRoutineFiles);
       try {
@@ -568,7 +576,10 @@ export class ServerSession {
     }
   }
 
-  private async scanLastTimestamps(files: WatchedFile[]) {
+  private async scanLastTimestamps(
+    files: WatchedFile[],
+    stampFiles = files,
+  ) {
     if (!this.client || this.scanningLastTimestamps || files.length === 0) {
       return;
     }
@@ -580,7 +591,8 @@ export class ServerSession {
     this.scanningLastTimestamps = true;
     try {
       const env = getEnv();
-      const parts = files.map((entry) => {
+      const query = stampFiles.length > 0 ? stampFiles : files;
+      const parts = query.map((entry) => {
         const file = posixQuote(entry.name);
         return `printf '%s\\t' ${file}; tail -n ${LAST_TS_TAIL_LINES} -- ${file} | LC_ALL=C awk 'match($0, /[0-9]{8}\\/[0-9]{6}(\\.[0-9]{1,3})?/) { stamp=substr($0, RSTART, RLENGTH) } END { print stamp }'`;
       });
@@ -605,7 +617,8 @@ export class ServerSession {
     }
 
     const env = getEnv();
-    const command = `find ${posixQuote(env.FILE_PATH)} -maxdepth 1 -type f -name ${posixQuote(env.FILE_PATTERN)} -mmin -${DATA_WINDOW_MINUTES} -printf '%f\\t%s\\t%T@\\n'`;
+    const listPattern = expandFilePatternForRotations(env.FILE_PATTERN);
+    const command = `find ${posixQuote(env.FILE_PATH)} -maxdepth 1 -type f -name ${posixQuote(listPattern)} -mmin -${DATA_WINDOW_MINUTES} -printf '%f\\t%s\\t%T@\\n'`;
     const result = await execCommand(this.client, command);
 
     if (result.code !== 0) {
@@ -615,7 +628,7 @@ export class ServerSession {
       );
     }
 
-    return result.stdout
+    const listed = result.stdout
       .split("\n")
       .map((line) => line.trim())
       .filter(Boolean)
@@ -641,6 +654,8 @@ export class ServerSession {
       .filter(
         (file) => isLogFile(file.name) && isFileWithinDataWindow(file.mtimeMs),
       );
+
+    return selectLogFilesForCoverage(listed, env.FILE_PATTERN);
   }
 
   private async startTail(names: string[], tailLines: number) {

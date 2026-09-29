@@ -7,6 +7,7 @@ import {
   chartText,
   chartTooltip,
 } from "@/components/dashboard/chartTheme";
+import { ChartEmpty } from "@/components/dashboard/ChartStamp";
 import { ACTIVATION_WINDOW_HOURS } from "@/lib/data-window";
 import type { ActivationHourPoint } from "@/lib/types";
 
@@ -62,9 +63,9 @@ export default function ActivationTimelineChart({
 
   if (hourly.every((point) => point.count === 0)) {
     return (
-      <div className="flex h-64 items-center justify-center text-sm text-zinc-500">
+      <ChartEmpty>
         No activities in WP logs over the last {ACTIVATION_WINDOW_HOURS} hours.
-      </div>
+      </ChartEmpty>
     );
   }
 

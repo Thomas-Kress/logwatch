@@ -47,6 +47,7 @@ const envSchema = z.object({
     .enum(["true", "false"])
     .default("false")
     .transform((value) => value === "true"),
+  HISTORY_COLLECTION_DAYS: z.coerce.number().int().positive().default(7),
 });
 
 export type SshTarget = {
@@ -151,6 +152,7 @@ export function getEnv(): AppEnv {
     ALERT_ERROR_PER_MIN: process.env.ALERT_ERROR_PER_MIN ?? "5",
     ALERT_WARN_PER_MIN: process.env.ALERT_WARN_PER_MIN ?? "30",
     ALERT_INCLUDE_TRACES: process.env.ALERT_INCLUDE_TRACES ?? "false",
+    HISTORY_COLLECTION_DAYS: process.env.HISTORY_COLLECTION_DAYS ?? "7",
   });
 
   if (!parsed.success) {
@@ -200,6 +202,7 @@ export function publicEnv() {
     port: servers[0]?.port ?? env.SSH_PORT,
     path: env.FILE_PATH,
     pattern: env.FILE_PATTERN,
+    historyCollectionDays: env.HISTORY_COLLECTION_DAYS,
     servers,
   };
 }

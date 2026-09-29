@@ -14,7 +14,7 @@ export function fileKey(server: string | undefined, name: string): string {
 }
 
 export function fileLabel(name: string, serverHost?: string, multi = false) {
-  const short = name.replace(/_00\.txt$/, "");
+  const short = name.replace(/_00\.txt$/i, "").replace(/\.txt$/i, "");
   if (!multi || !serverHost) {
     return short;
   }

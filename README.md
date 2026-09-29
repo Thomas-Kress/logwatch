@@ -41,7 +41,7 @@ Required in `.env`:
 | `SSH_USERNAME` | SSH user |
 | `SSH_PASSWORD` or `SSH_KEY_FILE` | Authentication |
 | `FILE_PATH` | Directory that holds the AE logs (often `…/AutomationEngine/temp`) |
-| `FILE_PATTERN` | File glob, typically `*_00.txt` |
+| `FILE_PATTERN` | Current-file glob, typically `*_00.txt`. Older rotations (`*_01.txt`, `*_02.txt`, …) are added automatically until each log covers the last 7 hours |
 
 Optional second AE server (leave `SSH2_HOST` empty for the default one-server setup):
 
@@ -62,6 +62,7 @@ Optional:
 | `ALERT_ERROR_PER_MIN` | `5` | Error-rate alert threshold |
 | `ALERT_WARN_PER_MIN` | `30` | Warning-rate alert threshold |
 | `ALERT_INCLUDE_TRACES` | `false` | Unused for analysis; traces stay out of scope |
+| `HISTORY_COLLECTION_DAYS` | `7` | Days of log history the header collection action will cover |
 
 ## How it works
 
@@ -81,8 +82,8 @@ It is not a log archive, SIEM, or replacement for Automic’s own reporting. It 
 ### Data path
 
 1. On startup the server reads `.env` and opens an SSH session to `SSH_HOST`. If `SSH2_HOST` is set, it opens a second session to that host as well (typical Automic active-active pair). Each session reconnects independently.
-2. It lists files in `FILE_PATH` that match `FILE_PATTERN`, are `*_log_*` (not `*_trc_*`), and were modified in the last 7 days — on every connected host.
-3. It follows those files with `tail -F`, starting from the last `TAIL_LINES` lines of each file.
+2. It lists files in `FILE_PATH` that match `FILE_PATTERN` (typically `*_00.txt`), are `*_log_*` (not `*_trc_*`), and were modified in the last 7 days — on every connected host. If a current `*_00.txt` file does not reach back 7 hours, Logwatch also reads `*_01.txt`, `*_02.txt`, and so on until that window is covered.
+3. It follows the current `*_00.txt` files with `tail -F`, starting from the last `TAIL_LINES` lines of each file. Rotated files are scanned for history, not followed live.
 4. Each line is parsed as Automic format (`YYYYMMDD/HHMMSS - U00… message`) when possible. The parser extracts timestamp, process (CP/WP/JWP/JCP), severity, message id, RunID, object name, and slow-DB OPC plus duration.
 5. Severity for Automic `U00…` messages comes from `src/data/severty.md` (Info, Warning, Error), loaded via `src/data/message-severity.json`. Lines without a catalog match still use message-text heuristics (abend, failed, timed out, and similar wording).
 6. Parsed events are pushed to the browser over Server-Sent Events (`/api/logs/stream`). A full snapshot is sent at least every 30 seconds; the file list is rescanned at `FILE_REFRESH_MS` (capped at one minute).

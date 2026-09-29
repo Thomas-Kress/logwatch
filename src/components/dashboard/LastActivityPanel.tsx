@@ -1,6 +1,15 @@
 "use client";
 
+import Chip from "@mui/material/Chip";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableContainer from "@mui/material/TableContainer";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
+import Typography from "@mui/material/Typography";
 import { useEffect, useMemo, useState } from "react";
+import { PanelCard } from "@/components/ui/PanelCard";
 import {
   LAST_ACTIVITY_LIVE_MS,
   activityStatus,
@@ -10,7 +19,8 @@ import {
   processLabel,
 } from "@/lib/last-activity";
 import type { LogLine, WatchedFile } from "@/lib/types";
-import { cn, fileLabel } from "@/lib/utils";
+import { isCurrentRotation } from "@/lib/log-files";
+import { fileLabel } from "@/lib/utils";
 
 type LastActivityPanelProps = {
   files: WatchedFile[];
@@ -22,18 +32,23 @@ type LastActivityPanelProps = {
   onSelect?: (id: string) => void;
 };
 
-const statusClass: Record<string, string> = {
-  live: "text-emerald-300",
-  quiet: "text-amber-300",
-  stale: "text-red-300",
-  unknown: "text-zinc-500",
-};
+const statusColor = {
+  live: "success",
+  quiet: "warning",
+  stale: "error",
+  unknown: "default",
+} as const;
 
 const statusLabel: Record<string, string> = {
   live: "Live",
   quiet: "Quiet",
   stale: "Stale",
   unknown: "Unknown",
+};
+
+const mono = {
+  fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
+  fontSize: 13,
 };
 
 export function LastActivityPanel({
@@ -52,7 +67,11 @@ export function LastActivityPanel({
   }, []);
   const clock = tick > now ? tick : now;
   const rows = useMemo(
-    () => mergeFileActivity({ files, liveLines }),
+    () =>
+      mergeFileActivity({
+        files: files.filter((file) => isCurrentRotation(file.name)),
+        liveLines,
+      }),
     [files, liveLines],
   );
   const liveCount = rows.filter((row) => {
@@ -62,40 +81,38 @@ export function LastActivityPanel({
   }).length;
 
   return (
-    <section className="flex max-h-[28rem] flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/70">
-      <div className="flex items-center justify-between gap-3 border-b border-zinc-800 px-4 py-3">
-        <div>
-          <h2 className="text-sm font-medium text-zinc-200">
-            Latest timestamps
-          </h2>
-          <p className="mt-0.5 text-xs text-zinc-500">
-            Last Automic stamp in each log file
-            {generatedAt
-              ? ` · checked ${new Date(generatedAt).toLocaleTimeString(undefined, { hour12: false })}`
-              : ""}
-          </p>
-        </div>
-        <span className="shrink-0 text-xs text-zinc-500">
+    <PanelCard
+      maxHeight={448}
+      title="Latest timestamps"
+      action={
+        <Typography variant="caption" color="text.secondary">
           {liveCount}/{rows.length} live
-        </span>
-      </div>
-      <div className="flex-1 overflow-auto">
-        {rows.length === 0 ? (
-          <p className="px-4 py-8 text-sm text-zinc-500">
-            Waiting for the next log-file scan…
-          </p>
-        ) : (
-          <table className="w-full min-w-[36rem] border-collapse text-left font-mono text-[13px] leading-6">
-            <thead className="sticky top-0 bg-zinc-900 text-xs text-zinc-500">
-              <tr className="border-b border-zinc-800">
-                <th className="px-4 py-2 font-medium">Process</th>
-                <th className="px-3 py-2 font-medium">Log file</th>
-                <th className="px-3 py-2 font-medium">Last log</th>
-                <th className="px-3 py-2 font-medium">Age</th>
-                <th className="px-4 py-2 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
+        </Typography>
+      }
+    >
+      <Typography variant="caption" color="text.secondary" sx={{ display: "block", px: 2, pt: 1.5 }}>
+        Last Automic stamp in each log file
+        {generatedAt
+          ? ` · checked ${new Date(generatedAt).toLocaleTimeString(undefined, { hour12: false })}`
+          : ""}
+      </Typography>
+      {rows.length === 0 ? (
+        <Typography variant="body2" color="text.secondary" sx={{ px: 2, py: 4 }}>
+          Waiting for the next log-file scan…
+        </Typography>
+      ) : (
+        <TableContainer>
+          <Table size="small" stickyHeader sx={{ minWidth: 576 }}>
+            <TableHead>
+              <TableRow>
+                <TableCell>Process</TableCell>
+                <TableCell>Log file</TableCell>
+                <TableCell>Last log</TableCell>
+                <TableCell>Age</TableCell>
+                <TableCell>Status</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
               {rows.map((row) => {
                 const rawAge =
                   row.lastTsMs === undefined ? undefined : clock - row.lastTsMs;
@@ -105,37 +122,38 @@ export function LastActivityPanel({
                     ? undefined
                     : Math.max(0, rawAge);
                 return (
-                  <tr
+                  <TableRow
                     key={row.id}
-                    className={cn(
-                      "border-b border-zinc-900/80",
-                      onSelect && "cursor-pointer hover:bg-zinc-800/70",
-                      selected === row.id && "bg-zinc-800/70",
-                    )}
+                    hover={Boolean(onSelect)}
+                    selected={selected === row.id}
                     onClick={() => onSelect?.(selected === row.id ? "" : row.id)}
+                    sx={{ cursor: onSelect ? "pointer" : "default" }}
                   >
-                    <td className="px-4 py-1.5 text-zinc-100">
-                      {processLabel(row)}
-                    </td>
-                    <td className="px-3 py-1.5 text-zinc-400">
+                    <TableCell sx={mono}>{processLabel(row)}</TableCell>
+                    <TableCell sx={{ ...mono, color: "text.secondary" }}>
                       {fileLabel(row.name, row.serverHost, multiServer)}
-                    </td>
-                    <td className="px-3 py-1.5 whitespace-nowrap text-zinc-200">
+                    </TableCell>
+                    <TableCell sx={{ ...mono, whiteSpace: "nowrap" }}>
                       {formatActivityTime(row.lastTs)}
-                    </td>
-                    <td className={cn("px-3 py-1.5 whitespace-nowrap", statusClass[status])}>
+                    </TableCell>
+                    <TableCell sx={{ ...mono, whiteSpace: "nowrap" }}>
                       {ageMs === undefined ? "—" : formatAge(ageMs)}
-                    </td>
-                    <td className={cn("px-4 py-1.5", statusClass[status])}>
-                      {statusLabel[status]}
-                    </td>
-                  </tr>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        size="small"
+                        color={statusColor[status]}
+                        variant="outlined"
+                        label={statusLabel[status]}
+                      />
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </section>
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+    </PanelCard>
   );
 }

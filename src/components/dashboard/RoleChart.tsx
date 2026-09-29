@@ -7,6 +7,7 @@ import {
   chartText,
   chartTooltip,
 } from "@/components/dashboard/chartTheme";
+import { ChartEmpty } from "@/components/dashboard/ChartStamp";
 import type { SeriesPoint } from "@/lib/types";
 
 type RoleChartProps = {
@@ -65,9 +66,7 @@ export default function RoleChart({ series }: RoleChartProps) {
 
   if (series.length === 0) {
     return (
-      <div className="flex h-64 items-center justify-center text-sm text-zinc-500">
-        Waiting for CP / WP traffic…
-      </div>
+      <ChartEmpty>Waiting for CP / WP traffic…</ChartEmpty>
     );
   }
 

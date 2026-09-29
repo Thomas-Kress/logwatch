@@ -3,6 +3,8 @@ import type { LogLine } from "@/lib/types";
 export const DATA_WINDOW_DAYS = 7;
 export const DATA_WINDOW_MS = DATA_WINDOW_DAYS * 24 * 60 * 60 * 1000;
 export const DATA_WINDOW_MINUTES = DATA_WINDOW_DAYS * 24 * 60;
+export const LOG_COVERAGE_HOURS = 7;
+export const LOG_COVERAGE_MS = LOG_COVERAGE_HOURS * 60 * 60 * 1000;
 export const SLOW_DB_WINDOW_MS = 12 * 60 * 60 * 1000;
 export const ACTIVATION_WINDOW_HOURS = 7;
 export const ACTIVATION_WINDOW_MS = ACTIVATION_WINDOW_HOURS * 60 * 60 * 1000;

@@ -1,5 +1,11 @@
+import Chip from "@mui/material/Chip";
+import List from "@mui/material/List";
+import ListItemButton from "@mui/material/ListItemButton";
+import ListItemText from "@mui/material/ListItemText";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
+import { PanelCard } from "@/components/ui/PanelCard";
 import type { Alert, DashboardFilters } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
 type AlertListProps = {
   alerts: Alert[];
@@ -8,22 +14,26 @@ type AlertListProps = {
 
 export function AlertList({ alerts, onFilter }: AlertListProps) {
   return (
-    <div className="flex h-80 flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/70">
-      <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
-        <h2 className="text-sm font-medium text-zinc-200">Alerts</h2>
-        <span className="text-xs text-zinc-500">{alerts.length} active</span>
-      </div>
-      <div className="flex-1 overflow-auto">
-        {alerts.length === 0 ? (
-          <p className="px-4 py-6 text-sm text-zinc-500">
-            No alerts. Thresholds come from `.env` (`ALERT_ERROR_PER_MIN`,
-            `ALERT_WARN_PER_MIN`).
-          </p>
-        ) : (
-          alerts.map((alert) => (
-            <button
+    <PanelCard
+      height={320}
+      title="Alerts"
+      action={
+        <Typography variant="caption" color="text.secondary">
+          {alerts.length} active
+        </Typography>
+      }
+    >
+      {alerts.length === 0 ? (
+        <Typography variant="body2" color="text.secondary" sx={{ px: 2, py: 3 }}>
+          No alerts. Thresholds come from `.env` (`ALERT_ERROR_PER_MIN`,
+          `ALERT_WARN_PER_MIN`).
+        </Typography>
+      ) : (
+        <List disablePadding>
+          {alerts.map((alert) => (
+            <ListItemButton
               key={alert.id}
-              type="button"
+              divider
               onClick={() =>
                 onFilter({
                   file: alert.file ?? "",
@@ -31,27 +41,48 @@ export function AlertList({ alerts, onFilter }: AlertListProps) {
                   severity: alert.level === "critical" ? "error" : "warn",
                 })
               }
-              className="flex w-full flex-col gap-1 border-b border-zinc-900 px-4 py-3 text-left hover:bg-zinc-800/70"
             >
-              <div className="flex items-center justify-between gap-2">
-                <span
-                  className={cn(
-                    "text-xs font-medium uppercase",
-                    alert.level === "critical" ? "text-red-300" : "text-amber-300",
-                  )}
-                >
-                  {alert.level}
-                </span>
-                <span className="font-mono text-xs text-zinc-500">
-                  ×{alert.count}
-                </span>
-              </div>
-              <p className="text-sm text-zinc-200">{alert.title}</p>
-              <p className="truncate text-xs text-zinc-500">{alert.detail}</p>
-            </button>
-          ))
-        )}
-      </div>
-    </div>
+              <ListItemText
+                primary={
+                  <Stack
+                    direction="row"
+                    useFlexGap
+                    sx={{ justifyContent: "space-between", gap: 1, mb: 0.5 }}
+                  >
+                    <Chip
+                      size="small"
+                      color={alert.level === "critical" ? "error" : "warning"}
+                      label={alert.level}
+                      sx={{ textTransform: "uppercase" }}
+                    />
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ fontFamily: "var(--font-geist-mono), ui-monospace, monospace" }}
+                    >
+                      ×{alert.count}
+                    </Typography>
+                  </Stack>
+                }
+                secondary={
+                  <>
+                    <Typography variant="body2" color="text.primary">
+                      {alert.title}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" noWrap sx={{ display: "block" }}>
+                      {alert.detail}
+                    </Typography>
+                  </>
+                }
+                slotProps={{
+                  primary: { component: "div" },
+                  secondary: { component: "div" },
+                }}
+              />
+            </ListItemButton>
+          ))}
+        </List>
+      )}
+    </PanelCard>
   );
 }

@@ -1,12 +1,35 @@
 "use client";
 
-import { ChevronDown, ChevronRight } from "lucide-react";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import Accordion from "@mui/material/Accordion";
+import AccordionDetails from "@mui/material/AccordionDetails";
+import AccordionSummary from "@mui/material/AccordionSummary";
+import Box from "@mui/material/Box";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import Grid from "@mui/material/Grid";
+import List from "@mui/material/List";
+import ListItemAvatar from "@mui/material/ListItemAvatar";
+import ListItemButton from "@mui/material/ListItemButton";
+import ListItemText from "@mui/material/ListItemText";
+import Stack from "@mui/material/Stack";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableContainer from "@mui/material/TableContainer";
+import TableRow from "@mui/material/TableRow";
+import Typography from "@mui/material/Typography";
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import type { SlowDbTypeStat } from "@/components/dashboard/SlowDbChart";
 import { colorForOpc } from "@/components/dashboard/chartTheme";
 import { ChartCard } from "@/components/dashboard/ChartStamp";
 import { SlowRoutineView } from "@/components/dashboard/SlowRoutineView";
+import { FilterSearch } from "@/components/ui/FilterSearch";
+import { FilterSelect } from "@/components/ui/FilterSelect";
+import { FilterToolbar } from "@/components/ui/FilterToolbar";
+import { PanelCard } from "@/components/ui/PanelCard";
+import { StatCard } from "@/components/ui/StatCard";
 import {
   formatDuration,
   isLogFile,
@@ -17,7 +40,7 @@ import {
 import { latestArrivalMs } from "@/lib/chart-stamp";
 import { eventTime, isWithinWindow, SLOW_DB_WINDOW_MS } from "@/lib/data-window";
 import type { FileRole, LogLine } from "@/lib/types";
-import { cn, fileKey, fileLabel } from "@/lib/utils";
+import { fileKey, fileLabel } from "@/lib/utils";
 
 const SlowDbChart = dynamic(() => import("@/components/dashboard/SlowDbChart"), {
   ssr: false,
@@ -50,11 +73,6 @@ type SlowDbEvent = {
 };
 
 const SLOW_DB_WINDOW_HOURS = SLOW_DB_WINDOW_MS / (60 * 60 * 1000);
-
-const selectClass =
-  "h-8 rounded-lg border border-zinc-800 bg-zinc-900 px-2 text-sm text-zinc-200 outline-none";
-const inputClass =
-  "h-8 rounded-lg border border-zinc-800 bg-zinc-900 px-3 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-sky-700";
 
 function toEvent(line: LogLine): SlowDbEvent {
   const parsed = parseSlowDbCall(line.raw) ?? parseSlowDbCall(line.message);
@@ -96,6 +114,11 @@ function formatDateTime(value: string) {
     hour12: false,
   });
 }
+
+const mono = {
+  fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
+  fontSize: 13,
+};
 
 export function SlowDbView({
   events,
@@ -244,220 +267,253 @@ export function SlowDbView({
   const perHour = visible.length / SLOW_DB_WINDOW_HOURS;
 
   return (
-    <div className="flex flex-col gap-5">
-      <section className="flex flex-wrap items-center gap-2 rounded-2xl border border-zinc-800 bg-zinc-900/70 p-3">
-        <p className="mr-2 text-sm font-medium text-zinc-300">Slow DB</p>
-        <select
+    <Stack spacing={2.5}>
+      <FilterToolbar label="Slow DB">
+        <FilterSelect
           value={role}
-          onChange={(event) => setRole(event.target.value)}
-          className={selectClass}
-        >
-          <option value="">All processes</option>
-          {byRole.map((item) => (
-            <option key={item.role} value={item.role}>
-              {item.role} ({item.count})
-            </option>
-          ))}
-        </select>
-        <select
-          value={file}
-          onChange={(event) => setFile(event.target.value)}
-          className={`${selectClass} max-w-72`}
-        >
-          <option value="">All log files</option>
-          {byFile.map((item) => {
-            const key = fileKey(item.server, item.file);
-            return (
-              <option key={key} value={key}>
-                {fileLabel(item.file, item.serverHost, multiServer)} ({item.count})
-              </option>
-            );
-          })}
-        </select>
-        <select
-          value={opc}
-          onChange={(event) => setOpc(event.target.value)}
-          className={selectClass}
-        >
-          <option value="">All OPC types</option>
-          {allTypes.map((type) => (
-            <option key={type.opc} value={type.opc}>
-              {type.operation} ({type.opc})
-            </option>
-          ))}
-        </select>
-        <input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search operation, OPC, or file…"
-          className={`${inputClass} min-w-48 flex-1`}
+          onChange={setRole}
+          options={[
+            { value: "", label: "All processes" },
+            ...byRole.map((item) => ({
+              value: item.role,
+              label: `${item.role} (${item.count})`,
+            })),
+          ]}
         />
-      </section>
+        <FilterSelect
+          value={file}
+          onChange={setFile}
+          sx={{ maxWidth: 288 }}
+          options={[
+            { value: "", label: "All log files" },
+            ...byFile.map((item) => {
+              const key = fileKey(item.server, item.file);
+              return {
+                value: key,
+                label: `${fileLabel(item.file, item.serverHost, multiServer)} (${item.count})`,
+              };
+            }),
+          ]}
+        />
+        <FilterSelect
+          value={opc}
+          onChange={setOpc}
+          options={[
+            { value: "", label: "All OPC types" },
+            ...allTypes.map((type) => ({
+              value: type.opc,
+              label: `${type.operation} (${type.opc})`,
+            })),
+          ]}
+        />
+        <FilterSearch
+          value={query}
+          onChange={setQuery}
+          placeholder="Search operation, OPC, or file…"
+        />
+      </FilterToolbar>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <article className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4">
-          <p className="text-sm text-zinc-400">Calls · {SLOW_DB_WINDOW_HOURS}h</p>
-          <p className="mt-3 font-mono text-3xl tracking-tight text-zinc-50">
-            {visible.length}
-          </p>
-        </article>
-        <article className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4">
-          <p className="text-sm text-zinc-400">Per hour</p>
-          <p className="mt-3 font-mono text-3xl tracking-tight text-zinc-50">
-            {perHour < 10 ? perHour.toFixed(1) : Math.round(perHour)}
-          </p>
-        </article>
-        <article className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4">
-          <p className="text-sm text-zinc-400">Slowest</p>
-          <p className="mt-3 font-mono text-3xl tracking-tight text-amber-300">
-            {slowest && slowest.durationMs
-              ? formatDuration(slowest.durationMs)
-              : "—"}
-          </p>
-        </article>
-        <article className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4">
-          <p className="text-sm text-zinc-400">OPC types</p>
-          <p className="mt-3 font-mono text-3xl tracking-tight text-zinc-50">
-            {types.length}
-          </p>
-        </article>
-      </section>
+      <Grid container spacing={1.5}>
+        <Grid size={{ xs: 12, sm: 6, xl: 3 }}>
+          <StatCard label={`Calls · ${SLOW_DB_WINDOW_HOURS}h`} value={visible.length} />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, xl: 3 }}>
+          <StatCard
+            label="Per hour"
+            value={perHour < 10 ? perHour.toFixed(1) : Math.round(perHour)}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, xl: 3 }}>
+          <StatCard
+            label="Slowest"
+            value={
+              slowest && slowest.durationMs
+                ? formatDuration(slowest.durationMs)
+                : "—"
+            }
+            valueColor="warning.main"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, xl: 3 }}>
+          <StatCard label="OPC types" value={types.length} />
+        </Grid>
+      </Grid>
 
-      <p className="text-xs text-zinc-500">
+      <Typography variant="caption" color="text.secondary">
         {SLOW_DB_MESSAGE_ID} · time-critical DB calls over 1 second · last{" "}
         {SLOW_DB_WINDOW_HOURS} hours
-      </p>
+      </Typography>
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(260px,0.9fr)]">
-        <ChartCard
-          title="By operation type"
-          description="Counts of slow calls grouped by OPC"
-          arrivedAt={arrivedAt}
-        >
-          <SlowDbChart types={types} />
-        </ChartCard>
-        <div className="flex max-h-[22rem] flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/70">
-          <p className="border-b border-zinc-800 px-4 py-3 text-sm font-medium text-zinc-200">
-            By operation
-          </p>
-          <div className="flex-1 overflow-auto">
+      <Grid container spacing={2}>
+        <Grid size={{ xs: 12, xl: 7.5 }}>
+          <ChartCard
+            title="By operation type"
+            description="Counts of slow calls grouped by OPC"
+            arrivedAt={arrivedAt}
+          >
+            <SlowDbChart types={types} />
+          </ChartCard>
+        </Grid>
+        <Grid size={{ xs: 12, xl: 4.5 }}>
+          <PanelCard title="By operation" maxHeight={352}>
             {types.length === 0 ? (
-              <p className="px-4 py-8 text-sm text-zinc-500">
+              <Typography variant="body2" color="text.secondary" sx={{ px: 2, py: 4 }}>
                 None yet. More than about one per hour is already considered
                 excessive.
-              </p>
+              </Typography>
             ) : (
-              types.map((type, index) => (
-                <button
-                  key={type.opc}
-                  type="button"
-                  onClick={() => setOpc(type.opc === opc ? "" : type.opc)}
-                  className={cn(
-                    "grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b border-zinc-900 px-4 py-2.5 text-left hover:bg-zinc-800/70",
-                    opc === type.opc && "bg-zinc-800/70",
-                  )}
-                >
-                  <span
-                    className="size-2.5 rounded-sm"
-                    style={{ backgroundColor: colorForOpc(type.opc, index) }}
-                  />
-                  <span className="truncate text-sm text-zinc-200">
-                    {type.operation}
-                    <span className="block truncate text-xs text-zinc-500">
-                      {type.opc}
-                      {type.maxDurationMs
-                        ? ` · slowest ${formatDuration(type.maxDurationMs)}`
-                        : ""}
-                    </span>
-                  </span>
-                  <span className="font-mono text-xs text-zinc-400">
-                    {type.count}
-                  </span>
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-      </section>
-
-      <section className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4">
-        <h2 className="text-sm font-medium text-zinc-200">Over time</h2>
-        <p className="mt-0.5 mb-3 text-xs text-zinc-500">
-          Calls and time consumed · last {SLOW_DB_WINDOW_HOURS} hours
-        </p>
-        <SlowDbTimelineChart
-          types={types}
-          events={visible}
-          arrivedAt={arrivedAt}
-        />
-      </section>
-
-      <section
-        className={cn(
-          "flex flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950",
-          listOpen && "min-h-[24rem]",
-        )}
-      >
-        <button
-          type="button"
-          onClick={() => setListOpen((open) => !open)}
-          aria-expanded={listOpen}
-          className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-zinc-900/80"
-        >
-          <span className="inline-flex items-center gap-2 text-sm font-medium text-zinc-200">
-            {listOpen ? (
-              <ChevronDown className="size-3.5 text-zinc-500" />
-            ) : (
-              <ChevronRight className="size-3.5 text-zinc-500" />
-            )}
-            Recent calls
-          </span>
-          <span className="text-xs text-zinc-500">
-            {listOpen ? `${recent.length} shown` : `${recent.length} hidden`}
-          </span>
-        </button>
-        {listOpen ? (
-          <div className="flex-1 overflow-auto border-t border-zinc-800 font-mono text-[13px] leading-6">
-            {recent.length === 0 ? (
-              <p className="px-4 py-8 text-sm text-zinc-500">
-                No slow database calls in the last {SLOW_DB_WINDOW_HOURS} hours.
-              </p>
-            ) : (
-              recent.map((event) => {
-                const key = fileKey(event.server, event.file);
-                return (
-                  <button
-                    key={`${event.id}-${key}-${event.ts}`}
-                    type="button"
-                    onClick={() => setFile(key === file ? "" : key)}
-                    className={cn(
-                      "grid w-full grid-cols-[auto_minmax(0,1fr)_auto] gap-3 border-b border-zinc-900/80 px-4 py-1.5 text-left hover:bg-zinc-900/80 lg:grid-cols-[auto_190px_56px_minmax(0,1fr)_88px]",
-                      file === key && "bg-zinc-900/80",
-                    )}
+              <List disablePadding>
+                {types.map((type, index) => (
+                  <ListItemButton
+                    key={type.opc}
+                    divider
+                    selected={opc === type.opc}
+                    onClick={() => setOpc(type.opc === opc ? "" : type.opc)}
                   >
-                    <span className="whitespace-nowrap text-zinc-500">
-                      {formatDateTime(event.ts)}
-                    </span>
-                    <span className="hidden truncate text-zinc-500 lg:block">
-                      {fileLabel(event.file, event.serverHost, multiServer)}
-                    </span>
-                    <span className="hidden text-zinc-600 lg:block">
-                      {event.role}
-                    </span>
-                    <span className="truncate text-zinc-200">
-                      {event.operation}
-                      <span className="ml-2 text-zinc-500">{event.opc}</span>
-                    </span>
-                    <span className="hidden truncate text-right font-mono text-amber-300 lg:block">
-                      {event.durationMs ? formatDuration(event.durationMs) : formatClock(event.ts)}
-                    </span>
-                  </button>
-                );
-              })
+                    <ListItemAvatar sx={{ minWidth: 24, mt: 0.75 }}>
+                      <Box
+                        sx={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: 0.5,
+                          bgcolor: colorForOpc(type.opc, index),
+                        }}
+                      />
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={type.operation}
+                      secondary={`${type.opc}${
+                        type.maxDurationMs
+                          ? ` · slowest ${formatDuration(type.maxDurationMs)}`
+                          : ""
+                      }`}
+                      slotProps={{
+                        primary: { noWrap: true },
+                        secondary: { noWrap: true },
+                      }}
+                    />
+                    <Typography variant="caption" color="text.secondary" sx={mono}>
+                      {type.count}
+                    </Typography>
+                  </ListItemButton>
+                ))}
+              </List>
             )}
-          </div>
-        ) : null}
-      </section>
+          </PanelCard>
+        </Grid>
+      </Grid>
+
+      <Card>
+        <CardContent sx={{ "&:last-child": { pb: 2 } }}>
+          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            Over time
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
+            Calls and time consumed · last {SLOW_DB_WINDOW_HOURS} hours
+          </Typography>
+          <SlowDbTimelineChart
+            types={types}
+            events={visible}
+            arrivedAt={arrivedAt}
+          />
+        </CardContent>
+      </Card>
+
+      <Accordion
+        expanded={listOpen}
+        onChange={(_, expanded) => setListOpen(expanded)}
+        variant="outlined"
+        sx={{ overflow: "hidden", borderRadius: 2 }}
+      >
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Box
+            sx={{
+              display: "flex",
+              width: "100%",
+              pr: 1,
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 2,
+            }}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              Recent calls
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {listOpen ? `${recent.length} shown` : `${recent.length} hidden`}
+            </Typography>
+          </Box>
+        </AccordionSummary>
+        <AccordionDetails sx={{ p: 0 }}>
+          {recent.length === 0 ? (
+            <Typography variant="body2" color="text.secondary" sx={{ px: 2, py: 4 }}>
+              No slow database calls in the last {SLOW_DB_WINDOW_HOURS} hours.
+            </Typography>
+          ) : (
+            <TableContainer sx={{ maxHeight: 384 }}>
+              <Table size="small">
+                <TableBody>
+                  {recent.map((event) => {
+                    const key = fileKey(event.server, event.file);
+                    return (
+                      <TableRow
+                        key={`${event.id}-${key}-${event.ts}`}
+                        hover
+                        selected={file === key}
+                        onClick={() => setFile(key === file ? "" : key)}
+                        sx={{ cursor: "pointer" }}
+                      >
+                        <TableCell sx={{ ...mono, color: "text.secondary", whiteSpace: "nowrap" }}>
+                          {formatDateTime(event.ts)}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            ...mono,
+                            color: "text.secondary",
+                            display: { xs: "none", lg: "table-cell" },
+                            maxWidth: 190,
+                          }}
+                        >
+                          <Typography noWrap variant="inherit">
+                            {fileLabel(event.file, event.serverHost, multiServer)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            ...mono,
+                            color: "text.disabled",
+                            display: { xs: "none", lg: "table-cell" },
+                          }}
+                        >
+                          {event.role}
+                        </TableCell>
+                        <TableCell sx={mono}>
+                          {event.operation}{" "}
+                          <Typography component="span" color="text.secondary" variant="inherit">
+                            {event.opc}
+                          </Typography>
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            ...mono,
+                            color: "warning.main",
+                            textAlign: "right",
+                            display: { xs: "none", lg: "table-cell" },
+                          }}
+                        >
+                          {event.durationMs
+                            ? formatDuration(event.durationMs)
+                            : formatClock(event.ts)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </AccordionDetails>
+      </Accordion>
 
       <SlowRoutineView
         events={routineEvents}
@@ -465,6 +521,6 @@ export function SlowDbView({
         now={now}
         multiServer={multiServer}
       />
-    </div>
+    </Stack>
   );
 }

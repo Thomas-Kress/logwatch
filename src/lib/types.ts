@@ -189,6 +189,7 @@ export type WatcherSnapshot = {
   servers: ServerSnapshot[];
   path: string;
   pattern: string;
+  historyCollectionDays: number;
   startedAt?: string;
   generatedAt: number;
   files: WatchedFile[];

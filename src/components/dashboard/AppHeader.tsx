@@ -1,18 +1,30 @@
 "use client";
 
-import {
-  Check,
-  ChevronDown,
-  Database,
-  HeartPulse,
-  LayoutDashboard,
-  Radio,
-  Server,
-  Sparkles,
-} from "lucide-react";
-import { useEffect, useId, useRef, useState } from "react";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import CheckIcon from "@mui/icons-material/Check";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import DnsIcon from "@mui/icons-material/Dns";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import HistoryIcon from "@mui/icons-material/History";
+import MonitorHeartIcon from "@mui/icons-material/MonitorHeart";
+import SensorsIcon from "@mui/icons-material/Sensors";
+import StorageIcon from "@mui/icons-material/Storage";
+import AppBar from "@mui/material/AppBar";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
+import Container from "@mui/material/Container";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import Stack from "@mui/material/Stack";
+import Toolbar from "@mui/material/Toolbar";
+import Typography from "@mui/material/Typography";
+import { useId, useState, type MouseEvent } from "react";
 import type { ConnectionStatus, ServerSnapshot } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
 export type DashboardView =
   | "overview"
@@ -21,10 +33,10 @@ export type DashboardView =
   | "processes";
 
 const VIEWS = [
-  { id: "overview", label: "Overview", icon: LayoutDashboard },
-  { id: "slowdb", label: "Performance Metrics", icon: Database },
-  { id: "activations", label: "Activities", icon: Sparkles },
-  { id: "processes", label: "Processes", icon: Server },
+  { id: "overview", label: "Overview", icon: DashboardIcon },
+  { id: "slowdb", label: "Performance Metrics", icon: StorageIcon },
+  { id: "activations", label: "Activities", icon: AutoAwesomeIcon },
+  { id: "processes", label: "Processes", icon: DnsIcon },
 ] as const;
 
 type AppHeaderProps = {
@@ -42,7 +54,21 @@ type AppHeaderProps = {
   showProcesses?: boolean;
   showHealthLog?: boolean;
   onToggleHealthLog?: () => void;
+  historyCollectionDays?: number;
 };
+
+function serverChipColor(status?: ConnectionStatus) {
+  if (status === "live") {
+    return "success" as const;
+  }
+  if (status === "connecting") {
+    return "info" as const;
+  }
+  if (status === "error") {
+    return "error" as const;
+  }
+  return "default" as const;
+}
 
 export function AppHeader({
   view,
@@ -59,167 +85,176 @@ export function AppHeader({
   showProcesses = true,
   showHealthLog = false,
   onToggleHealthLog,
+  historyCollectionDays = 7,
 }: AppHeaderProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const menuId = useId();
   const views = VIEWS.filter((item) => item.id !== "processes" || showProcesses);
   const currentView = views.find((item) => item.id === view) ?? views[0];
   const CurrentIcon = currentView.icon;
+  const menuOpen = Boolean(menuAnchor);
+  const partialLive =
+    status === "live" &&
+    multiServer &&
+    servers.some((server) => server.status !== "live");
 
-  useEffect(() => {
-    if (!menuOpen) {
-      return;
-    }
-    const onPointerDown = (event: PointerEvent) => {
-      if (!menuRef.current?.contains(event.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [menuOpen]);
+  const openMenu = (event: MouseEvent<HTMLElement>) => {
+    setMenuAnchor(event.currentTarget);
+  };
+
+  const closeMenu = () => {
+    setMenuAnchor(null);
+  };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur-md">
-      <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
-        <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-sky-400">
-            Logwatch
-          </p>
-          <p className="mt-0.5 truncate text-sm text-zinc-400">
-            {connected
-              ? `${hostLabel} · ${path} · ${pattern}${
-                  generatedAt
-                    ? ` · updated ${new Date(generatedAt).toLocaleTimeString(undefined, { hour12: false })}`
-                    : ""
-                }`
-              : "Reading .env and opening SSH…"}
-          </p>
-          {multiServer && (
-            <div className="mt-2 flex flex-wrap gap-2">
-              {servers.map((server) => (
-                <span
-                  key={server.id}
-                  className={cn(
-                    "inline-flex items-center rounded-full border px-2 py-0.5 text-xs",
-                    server.status === "live" &&
-                      "border-emerald-800 bg-emerald-950/50 text-emerald-300",
-                    server.status === "connecting" &&
-                      "border-sky-800 bg-sky-950/50 text-sky-300",
-                    server.status === "error" &&
-                      "border-red-800 bg-red-950/50 text-red-300",
-                    (server.status === "disconnected" || !server.status) &&
-                      "border-zinc-700 bg-zinc-900 text-zinc-400",
-                  )}
-                >
-                  {server.host}
-                  {server.status === "live" ? "" : ` · ${server.status}`}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <div ref={menuRef} className="relative">
-            <button
-              type="button"
+    <AppBar position="sticky">
+      <Container maxWidth={false} sx={{ maxWidth: 1280, px: { xs: 2, sm: 3 } }}>
+        <Toolbar
+          disableGutters
+          sx={{
+            minHeight: { xs: 64 },
+            py: 1.5,
+            gap: 2,
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+          }}
+        >
+          <Box sx={{ minWidth: 0 }}>
+            <Typography
+              variant="overline"
+              color="primary"
+              sx={{ letterSpacing: "0.2em", lineHeight: 1.2 }}
+            >
+              Logwatch
+            </Typography>
+            <Typography variant="body2" color="text.secondary" noWrap>
+              {connected
+                ? `${hostLabel} · ${path} · ${pattern}${
+                    generatedAt
+                      ? ` · updated ${new Date(generatedAt).toLocaleTimeString(undefined, { hour12: false })}`
+                      : ""
+                  }`
+                : "Reading .env and opening SSH…"}
+            </Typography>
+            {multiServer && (
+              <Stack direction="row" useFlexGap sx={{ mt: 1, flexWrap: "wrap", gap: 1 }}>
+                {servers.map((server) => (
+                  <Chip
+                    key={server.id}
+                    size="small"
+                    color={serverChipColor(server.status)}
+                    variant="outlined"
+                    label={
+                      server.status === "live"
+                        ? server.host
+                        : `${server.host} · ${server.status}`
+                    }
+                  />
+                ))}
+              </Stack>
+            )}
+          </Box>
+          <Stack direction="row" useFlexGap sx={{ flexWrap: "wrap", alignItems: "center", gap: 1.5 }}>
+            <Button
+              variant="outlined"
+              color="inherit"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
-              aria-controls={menuId}
-              onClick={() => setMenuOpen((open) => !open)}
-              className="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-200 hover:text-zinc-50"
+              aria-controls={menuOpen ? menuId : undefined}
+              onClick={openMenu}
+              startIcon={<CurrentIcon fontSize="small" />}
+              endIcon={
+                <ExpandMoreIcon
+                  fontSize="small"
+                  sx={{
+                    transition: "transform 0.2s",
+                    transform: menuOpen ? "rotate(180deg)" : "none",
+                  }}
+                />
+              }
             >
-              <CurrentIcon className="size-3.5" />
               {currentView.label}
-              <ChevronDown
-                className={cn(
-                  "size-3.5 text-zinc-500 transition",
-                  menuOpen && "rotate-180",
-                )}
-              />
-            </button>
-            {menuOpen && (
-              <div
-                id={menuId}
-                role="menu"
-                aria-label="Panels"
-                className="absolute right-0 z-40 mt-2 min-w-56 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 py-1 shadow-xl"
-              >
-                {views.map((item) => {
-                  const Icon = item.icon;
-                  const active = view === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      role="menuitemradio"
-                      aria-checked={active}
-                      onClick={() => {
-                        onViewChange(item.id);
-                        setMenuOpen(false);
-                      }}
-                      className={cn(
-                        "flex w-full items-center gap-2 px-3 py-2 text-left text-sm",
-                        active
-                          ? "bg-zinc-800 text-zinc-50"
-                          : "text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200",
-                      )}
-                    >
-                      <Icon className="size-3.5" />
-                      <span className="flex-1">{item.label}</span>
-                      {active && <Check className="size-3.5 text-sky-400" />}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-          {onToggleHealthLog && (
-            <button
-              type="button"
-              onClick={onToggleHealthLog}
-              aria-pressed={showHealthLog}
-              aria-controls={showHealthLog ? "health-log" : undefined}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm",
-                showHealthLog
-                  ? "border-sky-800 bg-sky-950/60 text-sky-200"
-                  : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200",
-              )}
+            </Button>
+            <Menu
+              id={menuId}
+              anchorEl={menuAnchor}
+              open={menuOpen}
+              onClose={closeMenu}
+              slotProps={{ paper: { sx: { minWidth: 224 } } }}
             >
-              <HeartPulse className="size-3.5" />
-              Health
-            </button>
-          )}
-          <div
-            className={cn(
-              "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm",
-              status === "live" &&
-                (multiServer && servers.some((server) => server.status !== "live")
-                  ? "border-amber-800 bg-amber-950/60 text-amber-300"
-                  : "border-emerald-800 bg-emerald-950/60 text-emerald-300"),
-              status === "connecting" &&
-                "border-sky-800 bg-sky-950/60 text-sky-300",
-              status === "error" && "border-red-800 bg-red-950/60 text-red-300",
-              status === "disconnected" &&
-                "border-zinc-700 bg-zinc-900 text-zinc-400",
+              {views.map((item) => {
+                const Icon = item.icon;
+                const active = view === item.id;
+                return (
+                  <MenuItem
+                    key={item.id}
+                    selected={active}
+                    onClick={() => {
+                      onViewChange(item.id);
+                      closeMenu();
+                    }}
+                  >
+                    <ListItemIcon>
+                      <Icon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText>{item.label}</ListItemText>
+                    {active ? <CheckIcon fontSize="small" color="primary" /> : null}
+                  </MenuItem>
+                );
+              })}
+            </Menu>
+            <Tooltip
+              title={`Collect last ${historyCollectionDays} day${
+                historyCollectionDays === 1 ? "" : "s"
+              }`}
+            >
+              <IconButton
+                color="inherit"
+                size="small"
+                aria-label={`Collect last ${historyCollectionDays} day${
+                  historyCollectionDays === 1 ? "" : "s"
+                }`}
+                sx={{
+                  border: 1,
+                  borderColor: "divider",
+                  borderRadius: 1,
+                }}
+              >
+                <HistoryIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            {onToggleHealthLog && (
+              <Button
+                variant={showHealthLog ? "contained" : "outlined"}
+                color={showHealthLog ? "primary" : "inherit"}
+                onClick={onToggleHealthLog}
+                aria-pressed={showHealthLog}
+                aria-controls={showHealthLog ? "health-log" : undefined}
+                startIcon={<MonitorHeartIcon fontSize="small" />}
+              >
+                Health
+              </Button>
             )}
-          >
-            <Radio className="size-4" />
-            {statusLabel}
-          </div>
-        </div>
-      </div>
-    </header>
+            <Chip
+              icon={<SensorsIcon />}
+              color={
+                status === "live"
+                  ? partialLive
+                    ? "warning"
+                    : "success"
+                  : status === "connecting"
+                    ? "info"
+                    : status === "error"
+                      ? "error"
+                      : "default"
+              }
+              variant="outlined"
+              label={statusLabel}
+            />
+          </Stack>
+        </Toolbar>
+      </Container>
+    </AppBar>
   );
 }

@@ -7,6 +7,7 @@ import {
   chartText,
   chartTooltip,
 } from "@/components/dashboard/chartTheme";
+import { ChartEmpty } from "@/components/dashboard/ChartStamp";
 import type { ActivationFileStat } from "@/lib/types";
 import { fileKey, fileLabel } from "@/lib/utils";
 
@@ -72,9 +73,7 @@ export default function ActivationFilesChart({
 
   if (top.length === 0) {
     return (
-      <div className="flex h-64 items-center justify-center text-sm text-zinc-500">
-        No WP log files reported activities yet.
-      </div>
+      <ChartEmpty>No WP log files reported activities yet.</ChartEmpty>
     );
   }
 
